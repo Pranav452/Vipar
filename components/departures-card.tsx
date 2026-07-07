@@ -5,15 +5,22 @@ import { Ship } from "lucide-react"
 
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { DATA_AS_OF } from "@/lib/data"
-import { fmtDateShort, vesselGroups } from "@/lib/stats"
+import { fmtDateShort, type VesselGroup } from "@/lib/stats"
 import { titleCase } from "@/lib/ports"
 import { cn } from "@/lib/utils"
 
-export function DeparturesCard({ className }: { className?: string }) {
+export function DeparturesCard({
+  vessels,
+  asOf,
+  className,
+}: {
+  vessels: VesselGroup[]
+  asOf: string
+  className?: string
+}) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
-  const upcoming = vesselGroups.filter((v) => !v.sailed)
-  const departed = vesselGroups.filter((v) => v.sailed)
+  const upcoming = vessels.filter((v) => !v.sailed)
+  const departed = vessels.filter((v) => v.sailed)
 
   return (
     <Card
@@ -28,13 +35,13 @@ export function DeparturesCard({ className }: { className?: string }) {
           <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
           <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Vessel schedule</span>
         </div>
-        <span className="text-xs text-muted-foreground/60">{vesselGroups.length} vessels</span>
+        <span className="text-xs text-muted-foreground/60">{vessels.length} vessels</span>
       </div>
 
       <div className="flex flex-col">
         {upcoming.map((v, index) => {
           const isHovered = hoveredIndex === index
-          const overdue = v.etd !== undefined && v.etd < DATA_AS_OF
+          const overdue = v.etd !== undefined && v.etd < asOf
           return (
             <div
               key={v.vessel}
@@ -75,20 +82,24 @@ export function DeparturesCard({ className }: { className?: string }) {
         })}
       </div>
 
-      <Separator className="bg-foreground/[0.06]" />
+      {departed.length > 0 && (
+        <>
+          <Separator className="bg-foreground/[0.06]" />
 
-      <div className="flex flex-col gap-1">
-        <span className="px-3 text-[10px] tracking-widest text-muted-foreground/50 uppercase">Sailed</span>
-        {departed.map((v) => (
-          <div key={v.vessel} className="flex items-center gap-3 px-3 py-1.5">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500/70" />
-            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{v.vessel}</span>
-            <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/60">
-              {v.containers} cntrs · SOB {fmtDateShort(v.etd)}
-            </span>
+          <div className="flex flex-col gap-1">
+            <span className="px-3 text-[10px] tracking-widest text-muted-foreground/50 uppercase">Sailed</span>
+            {departed.map((v) => (
+              <div key={v.vessel} className="flex items-center gap-3 px-3 py-1.5">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500/70" />
+                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{v.vessel}</span>
+                <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/60">
+                  {v.containers} cntrs · SOB {fmtDateShort(v.sob ?? v.etd)}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
       <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-foreground/[0.02] to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
     </Card>

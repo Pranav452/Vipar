@@ -3,17 +3,31 @@
 import createGlobe, { COBEOptions } from "cobe"
 import { useEffect, useRef } from "react"
 
-import { lanes } from "@/lib/stats"
 import { ORIGIN } from "@/lib/ports"
 import { cn } from "@/lib/utils"
 
 const EMERALD: [number, number, number] = [16 / 255, 185 / 255, 129 / 255]
 
-const maxContainers = Math.max(...lanes.map((l) => l.containers))
+export interface GlobeLane {
+  coords: [number, number]
+  containers: number
+}
 
-// One arc per trade lane, Nhava Sheva -> destination port, plus a marker at
-// every port sized by container volume.
-const GLOBE_CONFIG: Omit<COBEOptions, "width" | "height"> = {
+// Decorative markers for the public landing page — generic world ports only,
+// no client trade-lane data.
+const DECORATIVE_MARKERS = [
+  { location: [19.076, 72.8777], size: 0.08 },
+  { location: [1.3521, 103.8198], size: 0.05 },
+  { location: [25.2048, 55.2708], size: 0.05 },
+  { location: [31.2304, 121.4737], size: 0.06 },
+  { location: [51.9225, 4.4772], size: 0.05 },
+  { location: [-33.9249, 18.4241], size: 0.04 },
+  { location: [40.7128, -74.006], size: 0.05 },
+  { location: [35.6762, 139.6503], size: 0.04 },
+  { location: [-23.5505, -46.6333], size: 0.05 },
+] as COBEOptions["markers"]
+
+const BASE_CONFIG: Omit<COBEOptions, "width" | "height"> = {
   devicePixelRatio: 2,
   phi: 0,
   theta: 0.22,
@@ -27,25 +41,15 @@ const GLOBE_CONFIG: Omit<COBEOptions, "width" | "height"> = {
   arcColor: EMERALD,
   arcWidth: 0.4,
   arcHeight: 0.4,
-  markers: [
-    { location: ORIGIN.coords, size: 0.08 },
-    ...lanes.map((lane) => ({
-      location: lane.coords,
-      size: 0.035 + 0.045 * (lane.containers / maxContainers),
-    })),
-  ],
-  arcs: lanes.map((lane) => ({
-    from: ORIGIN.coords,
-    to: lane.coords,
-    color: EMERALD,
-  })),
 }
 
-export function TradeGlobe({ className }: { className?: string }) {
+export function TradeGlobe({ className, lanes }: { className?: string; lanes?: GlobeLane[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const pointerInteracting = useRef<number | null>(null)
   const pointerInteractionMovement = useRef(0)
   const rotationOffset = useRef(0)
+  const lanesRef = useRef(lanes)
+  lanesRef.current = lanes
 
   const updatePointerInteraction = (value: number | null) => {
     pointerInteracting.current = value
@@ -66,6 +70,28 @@ export function TradeGlobe({ className }: { className?: string }) {
     const canvas = canvasRef.current
     if (!canvas) return
 
+    const currentLanes = lanesRef.current
+    const options: Omit<COBEOptions, "width" | "height"> = { ...BASE_CONFIG }
+
+    if (currentLanes && currentLanes.length > 0) {
+      const maxContainers = Math.max(...currentLanes.map((l) => l.containers), 1)
+      options.markers = [
+        { location: ORIGIN.coords, size: 0.08 },
+        ...currentLanes.map((lane) => ({
+          location: lane.coords,
+          size: 0.035 + 0.045 * (lane.containers / maxContainers),
+        })),
+      ]
+      options.arcs = currentLanes.map((lane) => ({
+        from: ORIGIN.coords,
+        to: lane.coords,
+        color: EMERALD,
+      }))
+    } else {
+      options.markers = DECORATIVE_MARKERS
+      options.arcs = []
+    }
+
     let width = canvas.offsetWidth
     let phi = 2.05 // start centred on the Indian Ocean
     let frame = 0
@@ -76,7 +102,7 @@ export function TradeGlobe({ className }: { className?: string }) {
     window.addEventListener("resize", onResize)
 
     const globe = createGlobe(canvas, {
-      ...GLOBE_CONFIG,
+      ...options,
       width: width * 2,
       height: width * 2,
       phi,

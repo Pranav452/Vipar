@@ -23,25 +23,25 @@ import {
 } from "@/components/ui/table"
 import { StatusBadge } from "@/components/status-badge"
 import { STATUS_LABEL, type Status } from "@/lib/data"
-import { fmtDateShort, withStatus, type ShipmentWithStatus } from "@/lib/stats"
+import { fmtDateShort, type ShipmentWithStatus } from "@/lib/stats"
 import { titleCase } from "@/lib/ports"
 import { cn } from "@/lib/utils"
 
 const STATUS_TABS: (Status | "all")[] = ["all", "sailed", "at-port", "booked", "planned"]
 
-export function ShipmentsTable() {
+export function ShipmentsTable({ shipments }: { shipments: ShipmentWithStatus[] }) {
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<Status | "all">("all")
   const [country, setCountry] = useState("all")
 
   const countries = useMemo(
-    () => [...new Set(withStatus.map((s) => s.country).filter(Boolean))].sort(),
-    [],
+    () => [...new Set(shipments.map((s) => s.country).filter(Boolean))].sort(),
+    [shipments],
   )
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return withStatus.filter((s: ShipmentWithStatus) => {
+    return shipments.filter((s) => {
       if (status !== "all" && s.status !== status) return false
       if (country !== "all" && s.country !== country) return false
       if (!q) return true
@@ -51,7 +51,7 @@ export function ShipmentsTable() {
         .toLowerCase()
       return haystack.includes(q)
     })
-  }, [query, status, country])
+  }, [shipments, query, status, country])
 
   return (
     <Card className="group relative gap-5 overflow-hidden rounded-2xl border-foreground/[0.06] bg-foreground/[0.02] p-6 shadow-none backdrop-blur-sm transition-all duration-500 hover:border-foreground/[0.1]">
@@ -60,7 +60,7 @@ export function ShipmentsTable() {
           <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
           <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Work orders</span>
           <span className="ml-1 text-xs tabular-nums text-muted-foreground/50">
-            {rows.length} of {withStatus.length}
+            {rows.length} of {shipments.length}
           </span>
         </div>
 
@@ -96,7 +96,7 @@ export function ShipmentsTable() {
             <TabsTrigger
               key={tab}
               value={tab}
-              className="rounded-full px-3 text-xs data-[state=active]:bg-foreground data-[state=active]:text-background"
+              className="rounded-full px-3 text-xs data-[state=active]:bg-foreground data-[state=active]:text-background dark:data-[state=active]:bg-foreground dark:data-[state=active]:text-background"
             >
               {tab === "all" ? "All" : STATUS_LABEL[tab]}
             </TabsTrigger>
@@ -121,9 +121,9 @@ export function ShipmentsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((s, i) => (
+            {rows.map((s) => (
               <TableRow
-                key={`${s.wo}-${s.po ?? i}`}
+                key={s.wo}
                 className="border-foreground/[0.04] transition-colors hover:bg-foreground/[0.04]"
               >
                 <TableCell className="font-mono text-xs text-foreground/90">{s.wo}</TableCell>

@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    serverActions: {
+      // Operations sheet uploads (xlsx) exceed the 1 MB default.
+      bodySizeLimit: "10mb",
+    },
+  },
 };
 
 export default nextConfig;

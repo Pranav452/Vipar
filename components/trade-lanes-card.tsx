@@ -5,11 +5,11 @@ import { MoveRight } from "lucide-react"
 
 import { Card } from "@/components/ui/card"
 import { TradeGlobe } from "@/components/trade-globe"
-import { lanes } from "@/lib/stats"
+import type { Lane } from "@/lib/stats"
 import { ORIGIN, titleCase } from "@/lib/ports"
 import { cn } from "@/lib/utils"
 
-export function TradeLanesCard({ className }: { className?: string }) {
+export function TradeLanesCard({ lanes, className }: { lanes: Lane[]; className?: string }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const max = Math.max(...lanes.map((l) => l.containers), 1)
 
@@ -30,7 +30,7 @@ export function TradeLanesCard({ className }: { className?: string }) {
             <span className="text-[10px] tracking-widest text-muted-foreground/60 uppercase">Port of loading</span>
             <span className="text-sm font-medium">{ORIGIN.label}</span>
           </div>
-          <TradeGlobe className="max-w-[440px] translate-y-4" />
+          <TradeGlobe lanes={lanes} className="max-w-[440px] translate-y-4" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/60 to-transparent" />
         </div>
 

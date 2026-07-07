@@ -9,34 +9,24 @@ import { DeparturesCard } from "@/components/departures-card"
 import { ShipmentsTable } from "@/components/shipments-table"
 import { SiteHeader } from "@/components/site-header"
 import { TradeLanesCard } from "@/components/trade-lanes-card"
-import { DATA_AS_OF } from "@/lib/data"
-import {
-  STATUS_COUNTS,
-  TOTALS,
-  containersByCargo,
-  containersByCountry,
-  containersByGate,
-  containersByLine,
-  containersByPlant,
-  fmt,
-  fmtDate,
-  stuffingTimeline,
-  stuffingByWeek,
-  vehiclesByModel,
-  workOrdersByTransporter,
-} from "@/lib/stats"
+import { computeStats, fmt, fmtDate } from "@/lib/stats"
+import { loadDataset } from "@/lib/store"
 
 export const metadata: Metadata = {
   title: "Dashboard · VIPAR by LINKS",
 }
 
-const byStatus = Object.fromEntries(STATUS_COUNTS.map((s) => [s.status, s]))
+export const dynamic = "force-dynamic"
 
-export default function DashboardPage() {
-  const sparkContainers = stuffingByWeek.map((w) => w.containers)
-  const sparkVehicles = stuffingByWeek.map((w) => w.vehicles)
+export default async function DashboardPage() {
+  const dataset = await loadDataset()
+  const stats = computeStats(dataset.shipments, dataset.asOf)
 
-  const timeline = stuffingTimeline.map((d) => ({
+  const byStatus = Object.fromEntries(stats.statusCounts.map((s) => [s.status, s]))
+  const sparkContainers = stats.stuffingByWeek.map((w) => w.containers)
+  const sparkVehicles = stats.stuffingByWeek.map((w) => w.vehicles)
+
+  const timeline = stats.stuffingTimeline.map((d) => ({
     label: d.label,
     value: d.containers,
     muted: d.planned,
@@ -58,7 +48,7 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Export operations overview</h1>
             <span className="text-xs text-muted-foreground">
-              Nhava Sheva (JNPT) origin · snapshot {fmtDate(DATA_AS_OF)}
+              Nhava Sheva (JNPT) origin · data as of {fmtDate(stats.asOf)}
             </span>
           </div>
         </div>
@@ -67,21 +57,21 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <KpiCard
             label="Work orders"
-            value={fmt(TOTALS.workOrders)}
+            value={fmt(stats.totals.workOrders)}
             icon={<Container />}
             sub={`${byStatus["sailed"].workOrders} sailed · ${byStatus["planned"].workOrders} planned`}
             accent
           />
           <KpiCard
             label="Vehicles"
-            value={fmt(TOTALS.vehicles)}
+            value={fmt(stats.totals.vehicles)}
             unit="units"
             icon={<Bike />}
             spark={sparkVehicles}
           />
           <KpiCard
             label="Containers"
-            value={fmt(TOTALS.containers)}
+            value={fmt(stats.totals.containers)}
             unit="40' HC"
             icon={<Ship />}
             spark={sparkContainers}
@@ -112,8 +102,8 @@ export default function DashboardPage() {
 
         {/* Globe + vessel schedule */}
         <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
-          <TradeLanesCard />
-          <DeparturesCard />
+          <TradeLanesCard lanes={stats.lanes} />
+          <DeparturesCard vessels={stats.vesselGroups} asOf={stats.asOf} />
         </div>
 
         {/* Stuffing timeline */}
@@ -133,21 +123,21 @@ export default function DashboardPage() {
           <DonutCard
             title="Cargo type mix"
             subtitle="by containers"
-            data={containersByCargo}
+            data={stats.containersByCargo}
             unit="cntrs"
             centerLabel="containers"
           />
           <BarListCard
             title="Shipping lines"
             subtitle="containers booked"
-            data={containersByLine}
+            data={stats.containersByLine}
             unit="cntrs"
             live
           />
           <BarListCard
             title="Vehicle models"
             subtitle="units by model"
-            data={vehiclesByModel.filter((m) => m.value > 0)}
+            data={stats.vehiclesByModel.filter((m) => m.value > 0)}
             maxItems={8}
           />
         </div>
@@ -156,13 +146,13 @@ export default function DashboardPage() {
           <BarListCard
             title="Destination countries"
             subtitle="containers"
-            data={containersByCountry}
+            data={stats.containersByCountry}
             unit="cntrs"
           />
           <DonutCard
             title="Loading plants"
             subtitle="by containers"
-            data={containersByPlant}
+            data={stats.containersByPlant}
             unit="cntrs"
             centerLabel="containers"
           />
@@ -170,14 +160,14 @@ export default function DashboardPage() {
             <BarListCard
               title="Transporters"
               subtitle="work orders handled"
-              data={workOrdersByTransporter}
+              data={stats.workOrdersByTransporter}
               unit="WO"
               className="flex-1"
             />
             <BarListCard
               title="POL terminals"
               subtitle="containers gated"
-              data={containersByGate}
+              data={stats.containersByGate}
               unit="cntrs"
               className="flex-1"
             />
@@ -189,7 +179,7 @@ export default function DashboardPage() {
           <BarChartCard
             title="Weekly export volume"
             subtitle="containers per week (Mon start) · faint = planned"
-            data={stuffingByWeek.map((w) => ({
+            data={stats.stuffingByWeek.map((w) => ({
               label: w.label,
               value: w.containers,
               muted: w.planned,
@@ -202,11 +192,11 @@ export default function DashboardPage() {
 
         {/* Work orders table */}
         <div className="mt-4 scroll-mt-24" id="work-orders">
-          <ShipmentsTable />
+          <ShipmentsTable shipments={stats.withStatus} />
         </div>
 
         <p className="mt-8 text-center text-[11px] text-muted-foreground/50">
-          Management dashboard for VIPAR · prepared by LINKS · data as of {fmtDate(DATA_AS_OF)}
+          Management dashboard for VIPAR · prepared by LINKS · data as of {fmtDate(stats.asOf)}
         </p>
       </main>
     </div>

@@ -18,7 +18,7 @@ export interface Shipment {
   cont: number
   stuffing?: string
   vessel?: string
-  line?: ShippingLine
+  line?: string
   agent?: string
   transporter?: string
   cargo: CargoType

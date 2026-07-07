@@ -36,6 +36,7 @@
  * emerald accent, matching the premium mini-chart design language.
  */
 :root {
+  color-scheme: dark;
   --radius: 1rem;
   --background: oklch(0.13 0.004 285.82);
   --foreground: oklch(0.985 0 0);

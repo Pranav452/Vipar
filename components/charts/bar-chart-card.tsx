@@ -105,7 +105,7 @@ export function BarChartCard({
             >
               <div
                 className={cn(
-                  "w-full cursor-pointer rounded-full transition-all duration-300 ease-out origin-bottom",
+                  "mx-auto w-full max-w-9 cursor-pointer rounded-full transition-all duration-300 ease-out origin-bottom",
                   item.muted
                     ? isHovered
                       ? "bg-emerald-500"
