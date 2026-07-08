@@ -7,6 +7,20 @@
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "intas-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:\\development-manilal\\intas", "run", "dev", "--", "-p", "3001"],
+      "port": 3001,
+      "autoPort": true
+    },
+    {
+      "name": "colourtex-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:\\development-manilal\\colourtex", "run", "dev", "--", "-p", "3002"],
+      "port": 3002,
+      "autoPort": true
     }
   ]
 }

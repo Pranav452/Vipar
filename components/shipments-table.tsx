@@ -28,11 +28,13 @@ import { titleCase } from "@/lib/ports"
 import { cn } from "@/lib/utils"
 
 const STATUS_TABS: (Status | "all")[] = ["all", "sailed", "at-port", "booked", "planned"]
+const PAGE_SIZE = 15
 
 export function ShipmentsTable({ shipments }: { shipments: ShipmentWithStatus[] }) {
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<Status | "all">("all")
   const [country, setCountry] = useState("all")
+  const [page, setPage] = useState(0)
 
   const countries = useMemo(
     () => [...new Set(shipments.map((s) => s.country).filter(Boolean))].sort(),
@@ -53,6 +55,10 @@ export function ShipmentsTable({ shipments }: { shipments: ShipmentWithStatus[] 
     })
   }, [shipments, query, status, country])
 
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount - 1)
+  const pageRows = rows.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
+
   return (
     <Card className="group relative gap-5 overflow-hidden rounded-2xl border-foreground/[0.06] bg-foreground/[0.02] p-6 shadow-none backdrop-blur-sm transition-all duration-500 hover:border-foreground/[0.1]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -69,12 +75,12 @@ export function ShipmentsTable({ shipments }: { shipments: ShipmentWithStatus[] 
             <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
             <Input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); setPage(0); }}
               placeholder="Search WO, vessel, container, BL…"
               className="h-9 w-full rounded-full border-foreground/10 bg-foreground/[0.03] pl-9 text-xs sm:w-64"
             />
           </div>
-          <Select value={country} onValueChange={setCountry}>
+          <Select value={country} onValueChange={(v) => { setCountry(v); setPage(0); }}>
             <SelectTrigger size="sm" className="h-9 w-full rounded-full border-foreground/10 bg-foreground/[0.03] text-xs sm:w-40">
               <SelectValue placeholder="Country" />
             </SelectTrigger>
@@ -90,7 +96,7 @@ export function ShipmentsTable({ shipments }: { shipments: ShipmentWithStatus[] 
         </div>
       </div>
 
-      <Tabs value={status} onValueChange={(v) => setStatus(v as Status | "all")}>
+      <Tabs value={status} onValueChange={(v) => { setStatus(v as Status | "all"); setPage(0); }}>
         <TabsList className="h-9 rounded-full border border-foreground/[0.06] bg-foreground/[0.03] p-1">
           {STATUS_TABS.map((tab) => (
             <TabsTrigger
@@ -121,7 +127,7 @@ export function ShipmentsTable({ shipments }: { shipments: ShipmentWithStatus[] 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((s) => (
+            {pageRows.map((s) => (
               <TableRow
                 key={s.wo}
                 className="border-foreground/[0.04] transition-colors hover:bg-foreground/[0.04]"
@@ -158,7 +164,7 @@ export function ShipmentsTable({ shipments }: { shipments: ShipmentWithStatus[] 
                 </TableCell>
               </TableRow>
             ))}
-            {rows.length === 0 && (
+            {pageRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={10} className="h-24 text-center text-xs text-muted-foreground">
                   No work orders match the current filters.
@@ -168,6 +174,33 @@ export function ShipmentsTable({ shipments }: { shipments: ShipmentWithStatus[] 
           </TableBody>
         </Table>
       </div>
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs tabular-nums text-muted-foreground/60">
+            Rows {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, rows.length)} of {rows.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(Math.max(0, safePage - 1))}
+              disabled={safePage === 0}
+              className="rounded-full border border-foreground/15 bg-foreground/[0.03] px-3 py-1 text-xs transition-colors hover:bg-foreground/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              ← Prev
+            </button>
+            <span className="px-1 text-xs tabular-nums text-muted-foreground">
+              {safePage + 1} / {pageCount}
+            </span>
+            <button
+              onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
+              disabled={safePage >= pageCount - 1}
+              className="rounded-full border border-foreground/15 bg-foreground/[0.03] px-3 py-1 text-xs transition-colors hover:bg-foreground/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
     </Card>
   )
 }

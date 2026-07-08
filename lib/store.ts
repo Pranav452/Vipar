@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs"
 import path from "node:path"
 
 import { DATA_AS_OF, SHIPMENTS, type Shipment } from "./data"
-import { getSql } from "./db"
+import { getSql, withRetry } from "./db"
 
 const DATA_DIR = path.join(process.cwd(), "data")
 const DATASET_FILE = path.join(DATA_DIR, "shipments.json")
@@ -53,11 +53,11 @@ export async function loadDataset(): Promise<Dataset> {
   const sql = getSql()
   if (sql) {
     try {
-      const rows = (await sql`
+      const rows = (await withRetry(() => sql`
         SELECT id, as_of, source, uploaded_at, shipments
         FROM dataset_versions WHERE active = true
         ORDER BY uploaded_at DESC LIMIT 1
-      `) as { id: number; as_of: string | Date; source: string; uploaded_at: string; shipments: Shipment[] }[]
+      `)) as { id: number; as_of: string | Date; source: string; uploaded_at: string; shipments: Shipment[] }[]
       if (rows.length > 0) {
         const row = rows[0]
         return {
@@ -107,14 +107,14 @@ export async function saveDataset(
 
   const sql = getSql()
   if (sql) {
-    const inserted = (await sql`
+    const inserted = (await withRetry(() => sql`
       INSERT INTO dataset_versions
         (as_of, source, uploaded_by, work_orders, vehicles, containers, warnings, shipments, active)
       VALUES
         (${asOf}, ${source}, ${uploadedBy}, ${shipments.length}, ${vehicles}, ${containers},
          ${JSON.stringify(warnings)}::jsonb, ${JSON.stringify(shipments)}::jsonb, false)
       RETURNING id
-    `) as { id: number }[]
+    `)) as { id: number }[]
     const id = inserted[0].id
     await activateVersion(id)
     return id
@@ -131,11 +131,11 @@ export async function saveDataset(
 export async function listVersions(): Promise<DatasetVersion[]> {
   const sql = getSql()
   if (!sql) return []
-  const rows = (await sql`
+  const rows = (await withRetry(() => sql`
     SELECT id, as_of, source, uploaded_at, uploaded_by,
            work_orders, vehicles, containers, warnings, active
     FROM dataset_versions ORDER BY uploaded_at DESC
-  `) as (Omit<DatasetVersion, "as_of" | "warnings"> & { as_of: string | Date; warnings: unknown })[]
+  `)) as (Omit<DatasetVersion, "as_of" | "warnings"> & { as_of: string | Date; warnings: unknown })[]
   return rows.map((r) => ({
     ...r,
     as_of: isoDate(r.as_of),
@@ -146,8 +146,10 @@ export async function listVersions(): Promise<DatasetVersion[]> {
 export async function activateVersion(id: number): Promise<void> {
   const sql = getSql()
   if (!sql) throw new Error("Database not configured")
-  await sql.transaction([
-    sql`UPDATE dataset_versions SET active = false WHERE active = true`,
-    sql`UPDATE dataset_versions SET active = true WHERE id = ${id}`,
-  ])
+  await withRetry(() =>
+    sql.transaction([
+      sql`UPDATE dataset_versions SET active = false WHERE active = true`,
+      sql`UPDATE dataset_versions SET active = true WHERE id = ${id}`,
+    ]),
+  )
 }

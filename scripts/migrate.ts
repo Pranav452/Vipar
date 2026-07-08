@@ -72,6 +72,20 @@ async function main() {
     )
   `
   await sql`
+    CREATE TABLE IF NOT EXISTS ip_requests (
+      id            serial PRIMARY KEY,
+      username      text NOT NULL,
+      ip            text NOT NULL,
+      user_agent    text,
+      note          text,
+      status        text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'denied')),
+      requested_at  timestamptz NOT NULL DEFAULT now(),
+      resolved_at   timestamptz,
+      resolved_by   text
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS ip_requests_status ON ip_requests (status, requested_at DESC)`
+  await sql`
     CREATE TABLE IF NOT EXISTS access_log (
       id         serial PRIMARY KEY,
       ts         timestamptz NOT NULL DEFAULT now(),

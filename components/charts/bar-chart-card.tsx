@@ -100,7 +100,7 @@ export function BarChartCard({
           return (
             <div
               key={`${item.label}-${index}`}
-              className="relative flex h-full flex-1 flex-col items-center justify-end"
+              className="relative flex h-full min-w-0 flex-1 flex-col items-center justify-end"
               onMouseEnter={() => handleEnter(index)}
             >
               <div
@@ -127,7 +127,7 @@ export function BarChartCard({
               />
               <span
                 className={cn(
-                  "mt-2 h-3 text-[9px] font-medium whitespace-nowrap transition-all duration-300",
+                  "mt-2 h-3 w-full overflow-hidden text-center text-[9px] font-medium whitespace-nowrap transition-all duration-300",
                   isHovered ? "text-foreground" : "text-muted-foreground/50",
                   index % showEveryLabel !== 0 && !isHovered && "opacity-0",
                 )}

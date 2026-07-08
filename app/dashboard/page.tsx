@@ -6,9 +6,11 @@ import { BarListCard } from "@/components/charts/bar-list-card"
 import { DonutCard } from "@/components/charts/donut-card"
 import { KpiCard } from "@/components/charts/kpi-card"
 import { DeparturesCard } from "@/components/departures-card"
+import { PeriodFilter } from "@/components/period-filter"
 import { ShipmentsTable } from "@/components/shipments-table"
 import { SiteHeader } from "@/components/site-header"
 import { TradeLanesCard } from "@/components/trade-lanes-card"
+import { availablePeriods, inPeriod, periodFromSearchParams, periodLabel } from "@/lib/period"
 import { computeStats, fmt, fmtDate } from "@/lib/stats"
 import { loadDataset } from "@/lib/store"
 
@@ -18,9 +20,19 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic"
 
-export default async function DashboardPage() {
+// Work orders are dated by stuffing date, falling back to ETD for rows not yet stuffed.
+const woDate = (s: { stuffing?: string | null; etd?: string | null }) => s.stuffing ?? s.etd ?? null
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string; month?: string }>
+}) {
+  const period = periodFromSearchParams(await searchParams)
   const dataset = await loadDataset()
-  const stats = computeStats(dataset.shipments, dataset.asOf)
+  const periods = availablePeriods(dataset.shipments.map(woDate))
+  const filtered = dataset.shipments.filter((s) => inPeriod(woDate(s), period))
+  const stats = computeStats(filtered, dataset.asOf)
 
   const byStatus = Object.fromEntries(stats.statusCounts.map((s) => [s.status, s]))
   const sparkContainers = stats.stuffingByWeek.map((w) => w.containers)
@@ -46,10 +58,18 @@ export default async function DashboardPage() {
             <span>Client · VIPAR</span>
           </div>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Export operations overview</h1>
-            <span className="text-xs text-muted-foreground">
-              Nhava Sheva (JNPT) origin · data as of {fmtDate(stats.asOf)}
-            </span>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Export operations overview
+              {period.year !== null && (
+                <span className="text-emerald-400"> · {periodLabel(period)}</span>
+              )}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4">
+              <PeriodFilter periods={periods} year={period.year} month={period.month} />
+              <span className="text-xs text-muted-foreground">
+                Nhava Sheva (JNPT) origin · data as of {fmtDate(stats.asOf)}
+              </span>
+            </div>
           </div>
         </div>
 

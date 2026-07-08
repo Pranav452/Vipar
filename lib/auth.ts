@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs"
 import path from "node:path"
 import { cookies, headers } from "next/headers"
 
-import { getSql } from "./db"
+import { getSql, withRetry } from "./db"
 import { verifyPassword } from "./password"
 
 // ---------------------------------------------------------------------------
@@ -104,9 +104,9 @@ export async function verifyUser(username: string, password: string): Promise<{ 
   const sql = getSql()
   if (sql) {
     try {
-      const rows = (await sql`
+      const rows = (await withRetry(() => sql`
         SELECT password_hash, role FROM app_users WHERE username = ${username}
-      `) as { password_hash: string; role: Role }[]
+      `)) as { password_hash: string; role: Role }[]
       if (rows.length === 0) return null
       return verifyPassword(password, rows[0].password_hash) ? { role: rows[0].role } : null
     } catch (err) {
@@ -161,7 +161,7 @@ export interface AllowedIp {
 export async function listAllowedIps(): Promise<AllowedIp[]> {
   const sql = getSql()
   if (!sql) return []
-  return (await sql`SELECT id, ip, label, created_at FROM allowed_ips ORDER BY id`) as AllowedIp[]
+  return (await withRetry(() => sql`SELECT id, ip, label, created_at FROM allowed_ips ORDER BY id`)) as AllowedIp[]
 }
 
 export async function ipAllowedForClient(ip: string): Promise<boolean> {
@@ -169,6 +169,85 @@ export async function ipAllowedForClient(ip: string): Promise<boolean> {
   const rules = await listAllowedIps()
   if (rules.length === 0) return true
   return rules.some((r) => (r.ip.endsWith(".") ? ip.startsWith(r.ip) : ip === r.ip))
+}
+
+// ---------------------------------------------------------------------------
+// IP access requests — a client blocked at login can ask for their network to
+// be allowed; an admin approves/denies from the panel. No email is wired up,
+// so the requester finds out by trying to sign in again later.
+// ---------------------------------------------------------------------------
+
+export type IpRequestStatus = "pending" | "approved" | "denied"
+
+export interface IpRequest {
+  id: number
+  username: string
+  ip: string
+  user_agent: string | null
+  note: string | null
+  status: IpRequestStatus
+  requested_at: string
+  resolved_at: string | null
+  resolved_by: string | null
+}
+
+export async function createIpRequest(
+  username: string,
+  ip: string,
+  userAgent: string,
+  note: string | null,
+): Promise<void> {
+  const sql = getSql()
+  if (!sql) throw new Error("Database not configured")
+  const existing = (await withRetry(() => sql`
+    SELECT id FROM ip_requests WHERE ip = ${ip} AND status = 'pending' LIMIT 1
+  `)) as { id: number }[]
+  if (existing.length > 0) return // already pending — don't pile up duplicates
+  await withRetry(() => sql`
+    INSERT INTO ip_requests (username, ip, user_agent, note, status)
+    VALUES (${username}, ${ip}, ${userAgent}, ${note}, 'pending')
+  `)
+}
+
+export async function listIpRequests(status?: IpRequestStatus): Promise<IpRequest[]> {
+  const sql = getSql()
+  if (!sql) return []
+  if (status) {
+    return (await withRetry(() => sql`
+      SELECT id, username, ip, user_agent, note, status, requested_at, resolved_at, resolved_by
+      FROM ip_requests WHERE status = ${status} ORDER BY requested_at DESC
+    `)) as IpRequest[]
+  }
+  return (await withRetry(() => sql`
+    SELECT id, username, ip, user_agent, note, status, requested_at, resolved_at, resolved_by
+    FROM ip_requests ORDER BY requested_at DESC LIMIT 50
+  `)) as IpRequest[]
+}
+
+export async function resolveIpRequest(
+  id: number,
+  action: "approve" | "deny",
+  resolvedBy: string,
+): Promise<void> {
+  const sql = getSql()
+  if (!sql) throw new Error("Database not configured")
+  const rows = (await withRetry(() => sql`
+    SELECT ip, username FROM ip_requests WHERE id = ${id}
+  `)) as { ip: string; username: string }[]
+  if (rows.length === 0) return
+  const { ip, username } = rows[0]
+  if (action === "approve") {
+    await withRetry(() => sql`
+      INSERT INTO allowed_ips (ip, label)
+      VALUES (${ip}, ${`requested by ${username}`})
+      ON CONFLICT (ip) DO NOTHING
+    `)
+  }
+  await withRetry(() => sql`
+    UPDATE ip_requests
+    SET status = ${action === "approve" ? "approved" : "denied"}, resolved_at = now(), resolved_by = ${resolvedBy}
+    WHERE id = ${id}
+  `)
 }
 
 // ---------------------------------------------------------------------------
@@ -195,9 +274,9 @@ async function readDevicesFile(): Promise<DeviceRecord[]> {
 export async function listDevices(): Promise<DeviceRecord[]> {
   const sql = getSql()
   if (sql) {
-    const rows = (await sql`
+    const rows = (await withRetry(() => sql`
       SELECT id, first_seen, ip, user_agent FROM devices ORDER BY first_seen
-    `) as { id: string; first_seen: string; ip: string; user_agent: string }[]
+    `)) as { id: string; first_seen: string; ip: string; user_agent: string }[]
     return rows.map((r) => ({ id: r.id, firstSeen: r.first_seen, ip: r.ip, userAgent: r.user_agent }))
   }
   return readDevicesFile()
@@ -206,7 +285,7 @@ export async function listDevices(): Promise<DeviceRecord[]> {
 export async function removeDevice(id: string): Promise<void> {
   const sql = getSql()
   if (sql) {
-    await sql`DELETE FROM devices WHERE id = ${id}`
+    await withRetry(() => sql`DELETE FROM devices WHERE id = ${id}`)
     return
   }
   const devices = await readDevicesFile()
@@ -239,10 +318,10 @@ export async function checkDevice(existingDeviceId?: string): Promise<DeviceChec
 
   const sql = getSql()
   if (sql) {
-    await sql`
+    await withRetry(() => sql`
       INSERT INTO devices (id, first_seen, ip, user_agent)
       VALUES (${record.id}, ${record.firstSeen}, ${record.ip}, ${record.userAgent})
-    `
+    `)
   } else {
     await fs.mkdir(DATA_DIR, { recursive: true })
     await fs.writeFile(DEVICES_FILE, JSON.stringify([...devices, record], null, 2))
@@ -269,10 +348,10 @@ export async function audit(event: string, extra: Record<string, string> = {}): 
     const { user, ...meta } = extra
     const sql = getSql()
     if (sql) {
-      await sql`
+      await withRetry(() => sql`
         INSERT INTO access_log (event, username, ip, user_agent, meta)
         VALUES (${event}, ${user ?? null}, ${ip}, ${userAgent}, ${JSON.stringify(meta)}::jsonb)
-      `
+      `)
       return
     }
     await fs.mkdir(DATA_DIR, { recursive: true })
@@ -288,10 +367,10 @@ export async function audit(event: string, extra: Record<string, string> = {}): 
 export async function recentAuditRows(limit = 30): Promise<AuditRow[]> {
   const sql = getSql()
   if (sql) {
-    return (await sql`
+    return (await withRetry(() => sql`
       SELECT ts, event, username, ip, user_agent, meta
       FROM access_log ORDER BY id DESC LIMIT ${limit}
-    `) as AuditRow[]
+    `)) as AuditRow[]
   }
   try {
     const raw = await fs.readFile(AUDIT_FILE, "utf8")
