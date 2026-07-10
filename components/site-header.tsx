@@ -35,6 +35,12 @@ export async function SiteHeader() {
               >
                 Dashboard
               </Link>
+              <Link
+                href="/dashboard/tracking"
+                className="rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+              >
+                Live tracking
+              </Link>
               {(session.role === "uploader" || session.role === "admin") && (
                 <Link
                   href="/admin/upload"
