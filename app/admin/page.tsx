@@ -89,7 +89,7 @@ export default async function AdminPage() {
         {/* Live dataset */}
         <Card className="mb-4 flex-row items-center gap-4 rounded-2xl border-foreground/[0.06] bg-foreground/[0.02] p-5 shadow-none">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10">
-            <Database className="h-4 w-4 text-emerald-400" />
+            <Database className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium">
@@ -160,7 +160,7 @@ export default async function AdminPage() {
                       <td className="py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{v.warnings.length}</td>
                       <td className="py-2.5 text-right">
                         {v.active ? (
-                          <Badge className="gap-1.5 rounded-full border-emerald-500/25 bg-emerald-500/10 px-2.5 text-[10px] text-emerald-400" variant="outline">
+                          <Badge className="gap-1.5 rounded-full border-emerald-500/25 bg-emerald-500/10 px-2.5 text-[10px] text-emerald-600 dark:text-emerald-400" variant="outline">
                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                             Live
                           </Badge>
@@ -351,7 +351,7 @@ export default async function AdminPage() {
                           row.event.includes("failed") || row.event.includes("blocked")
                             ? "text-destructive"
                             : row.event.includes("ok") || row.event === "dataset-upload"
-                              ? "text-emerald-400"
+                              ? "text-emerald-600 dark:text-emerald-400"
                               : "text-foreground/80"
                         }
                       >

@@ -72,7 +72,7 @@ export function PeriodFilter({
       {year !== null && (
         <button
           onClick={() => apply(null, null)}
-          className="rounded-full border border-emerald-500/30 px-2.5 py-1 text-[10px] font-medium text-emerald-400 uppercase transition-colors hover:bg-emerald-500/10"
+          className="rounded-full border border-emerald-500/30 px-2.5 py-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 uppercase transition-colors hover:bg-emerald-500/10"
         >
           Clear
         </button>

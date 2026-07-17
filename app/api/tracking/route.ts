@@ -6,7 +6,8 @@ export const maxDuration = 60
 
 export async function POST(request: Request) {
   const session = await getSession()
-  if (!session) {
+  // Live tracking is staff-only; the client login sees published snapshots instead.
+  if (!session || (session.role !== "uploader" && session.role !== "admin")) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 

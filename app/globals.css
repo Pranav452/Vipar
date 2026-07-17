@@ -32,12 +32,36 @@
 }
 
 /*
- * VIPAR dashboard theme — deliberately dark-only, monochrome with a single
- * emerald accent, matching the premium mini-chart design language.
+ * VIPAR dashboard theme — monochrome with a single emerald accent.
+ * Dark is the default (next-themes defaultTheme="dark"); :root carries the
+ * clean light twin so the toggle can flip to a white/light-grey version.
  */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   --radius: 1rem;
+  --background: oklch(0.985 0.001 285.82);
+  --foreground: oklch(0.17 0.004 285.82);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.17 0.004 285.82);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.17 0.004 285.82);
+  --primary: oklch(0.2 0.004 285.82);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.94 0.002 285.82);
+  --secondary-foreground: oklch(0.2 0.004 285.82);
+  --muted: oklch(0.94 0.002 285.82);
+  --muted-foreground: oklch(0.48 0.005 285.82);
+  --accent: oklch(0.94 0.002 285.82);
+  --accent-foreground: oklch(0.2 0.004 285.82);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0 0 0 / 10%);
+  --input: oklch(0 0 0 / 14%);
+  --ring: oklch(0.55 0.005 285.82);
+}
+
+.dark {
+  color-scheme: dark;
   --background: oklch(0.13 0.004 285.82);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.155 0.004 285.82);

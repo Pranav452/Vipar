@@ -72,6 +72,18 @@ async function main() {
     )
   `
   await sql`
+    CREATE TABLE IF NOT EXISTS tracking_runs (
+      id        serial PRIMARY KEY,
+      ran_at    timestamptz NOT NULL DEFAULT now(),
+      ran_by    text NOT NULL,
+      label     text,
+      bookings  jsonb NOT NULL,
+      rows      jsonb NOT NULL,
+      not_found jsonb NOT NULL DEFAULT '[]'
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS tracking_runs_ran_at ON tracking_runs (ran_at DESC)`
+  await sql`
     CREATE TABLE IF NOT EXISTS ip_requests (
       id            serial PRIMARY KEY,
       username      text NOT NULL,

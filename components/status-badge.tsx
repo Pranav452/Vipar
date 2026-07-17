@@ -3,7 +3,7 @@ import { STATUS_LABEL, type Status } from "@/lib/data"
 import { cn } from "@/lib/utils"
 
 const STATUS_STYLES: Record<Status, string> = {
-  sailed: "border-emerald-500/25 bg-emerald-500/10 text-emerald-400",
+  sailed: "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   "at-port": "border-foreground/15 bg-foreground/10 text-foreground",
   booked: "border-foreground/10 bg-foreground/[0.04] text-muted-foreground",
   planned: "border-foreground/[0.08] bg-transparent text-muted-foreground/60",

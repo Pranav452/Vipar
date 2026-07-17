@@ -1,6 +1,7 @@
 "use client"
 
 import createGlobe, { COBEOptions } from "cobe"
+import { useTheme } from "next-themes"
 import { useEffect, useRef } from "react"
 
 import { ORIGIN } from "@/lib/ports"
@@ -27,7 +28,7 @@ const DECORATIVE_MARKERS = [
   { location: [-23.5505, -46.6333], size: 0.05 },
 ] as COBEOptions["markers"]
 
-const BASE_CONFIG: Omit<COBEOptions, "width" | "height"> = {
+const DARK_CONFIG: Omit<COBEOptions, "width" | "height"> = {
   devicePixelRatio: 2,
   phi: 0,
   theta: 0.22,
@@ -43,7 +44,18 @@ const BASE_CONFIG: Omit<COBEOptions, "width" | "height"> = {
   arcHeight: 0.4,
 }
 
+// Light twin: bright sphere, soft white glow, darker land dots for contrast.
+const LIGHT_CONFIG: Omit<COBEOptions, "width" | "height"> = {
+  ...DARK_CONFIG,
+  dark: 0,
+  diffuse: 0.9,
+  mapBrightness: 4,
+  baseColor: [0.85, 0.86, 0.87],
+  glowColor: [0.98, 0.98, 0.98],
+}
+
 export function TradeGlobe({ className, lanes }: { className?: string; lanes?: GlobeLane[] }) {
+  const { resolvedTheme } = useTheme()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const pointerInteracting = useRef<number | null>(null)
   const pointerInteractionMovement = useRef(0)
@@ -71,7 +83,9 @@ export function TradeGlobe({ className, lanes }: { className?: string; lanes?: G
     if (!canvas) return
 
     const currentLanes = lanesRef.current
-    const options: Omit<COBEOptions, "width" | "height"> = { ...BASE_CONFIG }
+    const options: Omit<COBEOptions, "width" | "height"> = {
+      ...(resolvedTheme === "light" ? LIGHT_CONFIG : DARK_CONFIG),
+    }
 
     if (currentLanes && currentLanes.length > 0) {
       const maxContainers = Math.max(...currentLanes.map((l) => l.containers), 1)
@@ -129,7 +143,7 @@ export function TradeGlobe({ className, lanes }: { className?: string; lanes?: G
       window.removeEventListener("resize", onResize)
       globe.destroy()
     }
-  }, [])
+  }, [resolvedTheme])
 
   return (
     <div className={cn("relative mx-auto aspect-square w-full max-w-[600px]", className)}>

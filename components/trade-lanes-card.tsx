@@ -56,7 +56,7 @@ export function TradeLanesCard({ lanes, className }: { lanes: Lane[]; className?
                     <MoveRight
                       className={cn(
                         "h-3 w-3 shrink-0 transition-colors duration-300",
-                        isHovered ? "text-emerald-400" : "text-muted-foreground/30",
+                        isHovered ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground/30",
                       )}
                     />
                     <span className={cn("truncate font-medium transition-colors", isHovered ? "text-foreground" : "text-foreground/80")}>

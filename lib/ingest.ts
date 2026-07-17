@@ -271,6 +271,103 @@ function canonicaliseVessels(shipments: Shipment[]): void {
   }
 }
 
+/**
+ * Re-normalise rows after the uploader edits them in the preview grid:
+ * strings trimmed/canonicalised, numbers coerced, dates re-validated.
+ * Returns fresh validation warnings.
+ */
+export function renormalize(rows: Shipment[]): { shipments: Shipment[]; warnings: string[] } {
+  const warnings: string[] = []
+  const shipments: Shipment[] = []
+  const fallbackYear = new Date().getFullYear()
+
+  const redate = (value: unknown, ctx: string): string | undefined => {
+    const str = collapse(value)
+    if (!str) return undefined
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str
+    return parseDateValue(str, ctx, fallbackYear, warnings)
+  }
+
+  for (const r of rows) {
+    const wo = collapse(r.wo)
+    if (!wo) {
+      pushWarning(warnings, `Row dropped: missing work order number.`)
+      continue
+    }
+
+    const portUpper = collapse(r.port).toUpperCase()
+    const port = PORT_ALIASES[portUpper] ?? portUpper
+    if (!port) {
+      pushWarning(warnings, `WO ${wo}: missing port of discharge.`)
+    } else if (!PORT_COORDS[port]) {
+      pushWarning(warnings, `WO ${wo}: port "${port}" has no map coordinates (will not plot on globe)`)
+    }
+
+    const countryUpper = collapse(r.country).toUpperCase()
+    const country =
+      COUNTRY_CANON[countryUpper] ??
+      (countryUpper ? countryUpper.charAt(0) + countryUpper.slice(1).toLowerCase() : "")
+
+    const lineUpper = collapse(r.line).toUpperCase()
+    const cargoRaw = collapse(r.cargo).toUpperCase()
+    if (cargoRaw && !KNOWN_CARGO.includes(cargoRaw)) {
+      pushWarning(warnings, `WO ${wo}: unknown cargo type "${cargoRaw}" — defaulted to CKD`)
+    }
+
+    const agentRaw = collapse(r.agent)
+    const transporterRaw = collapse(r.transporter)
+
+    // Containers may come back as an edited free-text string from the grid.
+    const containerTokens = Array.isArray(r.containers)
+      ? r.containers.flatMap((c) => collapse(c).toUpperCase().split(/[\s,]+/))
+      : collapse(r.containers).toUpperCase().split(/[\s,]+/)
+    const containers = containerTokens.filter((t) => /^[A-Z]{4}\d{6,7}$/.test(t))
+    const badTokens = containerTokens.filter((t) => t && !/^[A-Z]{4}\d{6,7}$/.test(t))
+    if (badTokens.length > 0) {
+      pushWarning(warnings, `WO ${wo}: dropped invalid container number(s) ${badTokens.join(", ")}`)
+    }
+
+    const shipment: Shipment = {
+      ...r,
+      wo,
+      port,
+      country,
+      model: collapse(r.model).toUpperCase(),
+      qty: parseIntSafe(r.qty),
+      cont: parseIntSafe(r.cont),
+      stuffing: redate(r.stuffing, `WO ${wo} stuffing date`),
+      vessel: collapse(r.vessel).toUpperCase() || undefined,
+      line: lineUpper ? (LINE_CANON[lineUpper] ?? lineUpper) : undefined,
+      agent: agentRaw ? snapToKnown(agentRaw, KNOWN_AGENTS, warnings, `WO ${wo} agent`) : undefined,
+      transporter: transporterRaw
+        ? snapToKnown(transporterRaw, KNOWN_TRANSPORTERS, warnings, `WO ${wo} transporter`)
+        : undefined,
+      cargo: (KNOWN_CARGO.includes(cargoRaw) ? cargoRaw : "CKD") as Shipment["cargo"],
+      plant: collapse(r.plant).toUpperCase() || undefined,
+      po: collapse(r.po) || undefined,
+      consignee: collapse(r.consignee).toUpperCase() || undefined,
+      booking: collapse(r.booking) || undefined,
+      containers,
+      polGate: collapse(r.polGate).toUpperCase() || undefined,
+      gateOpen: redate(r.gateOpen, `WO ${wo} gate open`),
+      gateCutoff: redate(r.gateCutoff, `WO ${wo} gate cut-off`),
+      siCutoff: redate(r.siCutoff, `WO ${wo} SI cut-off`),
+      etd: redate(r.etd, `WO ${wo} ETD`),
+      sob: redate(r.sob, `WO ${wo} SOB`),
+      blNo: collapse(r.blNo) || undefined,
+      blDate: redate(r.blDate, `WO ${wo} BL date`),
+      sbNo: collapse(r.sbNo) || undefined,
+      sbDate: redate(r.sbDate, `WO ${wo} SB date`),
+    }
+    if (shipment.containers && shipment.containers.length === 0) delete shipment.containers
+
+    shipments.push(shipment)
+  }
+
+  canonicaliseVessels(shipments)
+  return { shipments, warnings }
+}
+
 export function parseWorkbook(buffer: Buffer | ArrayBuffer, fallbackYear: number): IngestResult {
   const wb = XLSX.read(buffer, { type: buffer instanceof ArrayBuffer ? "array" : "buffer" })
   const sheet = wb.Sheets[wb.SheetNames[0]]

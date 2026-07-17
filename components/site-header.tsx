@@ -5,6 +5,7 @@ import { LogOut } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/app/login/actions"
+import { AnimatedThemeToggle } from "@/components/theme-toggle"
 import { getSession } from "@/lib/auth"
 import { fmtDate } from "@/lib/stats"
 import { loadDataset } from "@/lib/store"
@@ -71,6 +72,8 @@ export async function SiteHeader() {
               Data as of {fmtDate(dataset.asOf)}
             </Badge>
           )}
+
+          <AnimatedThemeToggle className="rounded-full border border-foreground/15 text-muted-foreground hover:border-foreground/30 hover:text-foreground" />
 
           {session ? (
             <form action={logout}>

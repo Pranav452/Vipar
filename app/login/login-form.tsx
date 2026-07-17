@@ -77,7 +77,7 @@ export function LoginForm({ from }: { from?: string }) {
             type="submit"
             disabled={reqPending}
             variant="outline"
-            className="h-9 rounded-lg border-emerald-500/40 text-xs text-emerald-400 hover:bg-emerald-500/10"
+            className="h-9 rounded-lg border-emerald-500/40 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
           >
             {reqPending ? "Sending…" : "Request access for this network"}
           </Button>

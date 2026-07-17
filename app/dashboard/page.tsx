@@ -61,7 +61,7 @@ export default async function DashboardPage({
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
               Export operations overview
               {period.year !== null && (
-                <span className="text-emerald-400"> · {periodLabel(period)}</span>
+                <span className="text-emerald-600 dark:text-emerald-400"> · {periodLabel(period)}</span>
               )}
             </h1>
             <div className="flex flex-wrap items-center gap-4">

@@ -55,7 +55,7 @@ export function DeparturesCard({
                 className={cn(
                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors duration-300",
                   isHovered
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                     : "border-foreground/[0.08] bg-foreground/[0.03] text-muted-foreground/60",
                 )}
               >
