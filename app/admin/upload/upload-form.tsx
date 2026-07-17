@@ -70,7 +70,7 @@ export function UploadForm({ today }: { today: string }) {
           </span>
         </div>
         {commitState.warnings && commitState.warnings.length > 0 && (
-          <ul className="max-h-40 overflow-auto rounded-xl bg-foreground/[0.03] p-3 text-[11px] leading-relaxed text-muted-foreground">
+          <ul data-lenis-prevent className="max-h-40 overflow-auto rounded-xl bg-foreground/[0.03] p-3 text-[11px] leading-relaxed text-muted-foreground">
             {commitState.warnings.map((w, i) => (
               <li key={i}>· {w}</li>
             ))}
@@ -197,7 +197,7 @@ export function UploadForm({ today }: { today: string }) {
                 </ol>
               )}
               {(state.ai?.explanations.length ?? 0) > 0 && (
-                <div className="flex max-h-72 flex-col gap-2 overflow-y-auto pr-1">
+                <div data-lenis-prevent className="flex max-h-72 flex-col gap-2 overflow-y-auto pr-1">
                   {state.ai!.explanations.map((e, i) => (
                     <div
                       key={i}
@@ -234,7 +234,7 @@ export function UploadForm({ today }: { today: string }) {
                 <TriangleAlert className="h-3.5 w-3.5" />
                 {state.report.warnings.length} data warnings
               </div>
-              <ul className="max-h-40 overflow-auto rounded-xl bg-foreground/[0.03] p-3 text-[11px] leading-relaxed text-muted-foreground">
+              <ul data-lenis-prevent className="max-h-40 overflow-auto rounded-xl bg-foreground/[0.03] p-3 text-[11px] leading-relaxed text-muted-foreground">
                 {state.report.warnings.map((w, i) => (
                   <li key={i}>· {w}</li>
                 ))}

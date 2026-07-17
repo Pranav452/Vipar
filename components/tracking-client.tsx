@@ -168,7 +168,7 @@ export function TrackingResultsView({
         </TabsList>
       </Tabs>
 
-      <div className="max-h-[540px] overflow-auto rounded-xl border border-foreground/[0.06]">
+      <div data-lenis-prevent className="max-h-[540px] overflow-auto rounded-xl border border-foreground/[0.06]">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
             <TableRow className="border-foreground/[0.06] hover:bg-transparent">
