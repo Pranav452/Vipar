@@ -5,7 +5,8 @@ import { RefreshCw, Sheet } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { syncFromSheet, type SheetSyncResult } from "./sheet-sync/actions"
+import { syncFromSheet } from "./sheet-sync/actions"
+import type { SheetSyncResult } from "@/lib/sheet-sync"
 
 interface Props {
   enabled: boolean
