@@ -374,6 +374,15 @@ export function parseWorkbook(buffer: Buffer | ArrayBuffer, fallbackYear: number
   if (!sheet) throw new Error("Workbook has no sheets")
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true, defval: null })
+  return parseRows(rows, fallbackYear)
+}
+
+/**
+ * Header-locate + normalise pipeline over raw grid rows (from SheetJS
+ * sheet_to_json or the Google Sheets values API). Shared by the xlsx upload
+ * and the Google Sheet sync paths.
+ */
+export function parseRows(rows: unknown[][], fallbackYear: number = new Date().getFullYear()): IngestResult {
   const warnings: string[] = []
 
   // Locate the header row (first row containing both WO and PORT)

@@ -12,7 +12,9 @@ import { listAllowedIps, listDevices, listIpRequests, recentAuditRows, requestId
 import { dbEnabled } from "@/lib/db"
 import { fmt, fmtDate, fmtDateShort } from "@/lib/stats"
 import { listVersions, loadDataset } from "@/lib/store"
+import { missingSheetSyncEnv, sheetSyncEnabled } from "@/lib/google-sheets"
 import { addAllowedIp, deleteAllowedIp, deleteDevice, resolveIpRequestAction, rollbackToVersion } from "./actions"
+import { SheetSyncCard } from "./sheet-sync-card"
 
 export const metadata: Metadata = {
   title: "Admin · VIPAR by LINKS",
@@ -102,6 +104,9 @@ export default async function AdminPage() {
             </span>
           </div>
         </Card>
+
+        {/* Google Sheet sync */}
+        <SheetSyncCard enabled={sheetSyncEnabled()} missingEnv={missingSheetSyncEnv()} />
 
         {/* Version timeline graph */}
         {timeline.length > 0 && (
