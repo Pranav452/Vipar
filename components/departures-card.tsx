@@ -26,7 +26,7 @@ export function DeparturesCard({
     <Card
       onMouseLeave={() => setHoveredIndex(null)}
       className={cn(
-        "group relative max-h-[760px] gap-4 rounded-2xl border-foreground/[0.06] bg-foreground/[0.02] p-6 shadow-none backdrop-blur-sm transition-all duration-500 hover:border-foreground/[0.1] hover:bg-foreground/[0.04]",
+        "group relative max-h-[560px] gap-4 rounded-2xl border-foreground/[0.06] bg-foreground/[0.02] p-6 shadow-none backdrop-blur-sm transition-all duration-500 hover:border-foreground/[0.1] hover:bg-foreground/[0.04]",
         className,
       )}
     >
@@ -39,7 +39,7 @@ export function DeparturesCard({
       </div>
 
       <div data-lenis-prevent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
-        <div className="flex flex-col">
+        <div className="grid gap-x-6 gap-y-1 md:grid-cols-2 xl:grid-cols-3">
           {upcoming.map((v, index) => {
             const isHovered = hoveredIndex === index
             const overdue = v.etd !== undefined && v.etd < asOf
@@ -89,15 +89,17 @@ export function DeparturesCard({
 
             <div className="flex flex-col gap-1">
               <span className="px-3 text-[10px] tracking-widest text-muted-foreground/50 uppercase">Sailed</span>
-              {departed.map((v) => (
-                <div key={v.vessel} className="flex items-center gap-3 px-3 py-1.5">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500/70" />
-                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{v.vessel}</span>
-                  <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/60">
-                    {v.containers} cntrs · SOB {fmtDateShort(v.sob ?? v.etd)}
-                  </span>
-                </div>
-              ))}
+              <div className="grid gap-x-6 md:grid-cols-2 xl:grid-cols-3">
+                {departed.map((v) => (
+                  <div key={v.vessel} className="flex items-center gap-3 px-3 py-1.5">
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500/70" />
+                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{v.vessel}</span>
+                    <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/60">
+                      {v.containers} cntrs · SOB {fmtDateShort(v.sob ?? v.etd)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </>
         )}

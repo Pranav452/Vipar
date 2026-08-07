@@ -120,9 +120,13 @@ export default async function DashboardPage({
           />
         </div>
 
-        {/* Globe + vessel schedule */}
-        <div className="mt-4 grid items-start gap-4 xl:grid-cols-[1.6fr_1fr]">
+        {/* Globe + trade lanes, full width */}
+        <div className="mt-4">
           <TradeLanesCard lanes={stats.lanes} />
+        </div>
+
+        {/* Vessel schedule, full width below */}
+        <div className="mt-4">
           <DeparturesCard vessels={stats.vesselGroups} asOf={stats.asOf} />
         </div>
 
