@@ -1,7 +1,7 @@
 "use client"
 
 import { useActionState, useMemo, useState } from "react"
-import { Download, RadioTower, Search, Send, Ship } from "lucide-react"
+import { Download, RadioTower, Search, Send, Sheet, Ship } from "lucide-react"
 import * as XLSX from "xlsx"
 
 import { publishTrackingRun, type PublishState } from "@/app/dashboard/tracking/actions"
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { TrackedContainer, TrackingResult, TrackingStatus } from "@/lib/one-tracking"
+import type { SheetBooking } from "@/lib/tracking-source"
 import { cn } from "@/lib/utils"
 
 const STATUS_LABEL: Record<TrackingStatus, string> = {
@@ -247,19 +248,39 @@ export function TrackingResultsView({
   )
 }
 
-/** Staff tool: paste bookings, fetch live from ONE, publish a snapshot for the client. */
-export function TrackingClient() {
+/** Staff tool: bookings auto-sourced from the ops sheet (paste as fallback), fetch live from ONE, publish a snapshot. */
+export function TrackingClient({
+  sheetBookings = [],
+  otherLineCount = 0,
+}: {
+  sheetBookings?: SheetBooking[]
+  otherLineCount?: number
+}) {
   const [input, setInput] = useState("")
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(sheetBookings.map((b) => b.booking)))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<TrackingResult | null>(null)
   const [publishState, publishAction, publishing] = useActionState<PublishState, FormData>(publishTrackingRun, {})
 
-  async function fetchTracking() {
+  const allSelected = sheetBookings.length > 0 && selected.size === sheetBookings.length
+
+  function toggleBooking(booking: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(booking)) next.delete(booking)
+      else next.add(booking)
+      return next
+    })
+  }
+
+  // Both entry points feed the same /api/tracking flow — the route's
+  // parseBookings() handles splitting/dedupe for pasted text and lists alike.
+  async function runTracking(text: string) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch("/api/tracking", { method: "POST", body: input })
+      const res = await fetch("/api/tracking", { method: "POST", body: text })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || res.statusText)
       setResult(json)
@@ -272,12 +293,87 @@ export function TrackingClient() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Paste card */}
+      {/* Ops-sheet bookings card */}
+      {sheetBookings.length > 0 && (
+        <Card className="gap-4 rounded-2xl border-foreground/[0.06] bg-foreground/[0.02] p-6 shadow-none backdrop-blur-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <Sheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              From ops sheet
+            </span>
+            <span className="ml-1 text-xs tabular-nums text-muted-foreground/50">
+              {sheetBookings.length} ONE booking{sheetBookings.length === 1 ? "" : "s"} in the current dataset
+            </span>
+            <label className="ml-auto flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={() =>
+                  setSelected(allSelected ? new Set() : new Set(sheetBookings.map((b) => b.booking)))
+                }
+                className="h-3.5 w-3.5 accent-emerald-500"
+              />
+              Select all
+            </label>
+          </div>
+
+          <div data-lenis-prevent className="max-h-64 overflow-auto rounded-xl border border-foreground/[0.06]">
+            <ul className="divide-y divide-foreground/[0.04]">
+              {sheetBookings.map((b) => (
+                <li key={b.booking}>
+                  <label className="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors hover:bg-foreground/[0.04]">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(b.booking)}
+                      onChange={() => toggleBooking(b.booking)}
+                      className="h-3.5 w-3.5 shrink-0 accent-emerald-500"
+                    />
+                    <span className="w-32 shrink-0 font-mono text-xs text-foreground/90">{b.booking}</span>
+                    <span className="hidden w-20 shrink-0 text-[11px] tabular-nums text-muted-foreground sm:inline">
+                      WO {b.wo}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground" title={b.vessel}>
+                      {b.vessel || "—"}
+                    </span>
+                    <span className="hidden max-w-40 shrink-0 truncate text-[11px] text-muted-foreground/70 md:inline">
+                      {b.port}
+                    </span>
+                    <span className="hidden shrink-0 text-[11px] tabular-nums text-muted-foreground/60 lg:inline">
+                      {b.etd ? `ETD ${b.etd}` : ""}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={() =>
+                runTracking(sheetBookings.filter((b) => selected.has(b.booking)).map((b) => b.booking).join("\n"))
+              }
+              disabled={loading || selected.size === 0}
+              size="sm"
+              className="gap-1.5 rounded-full px-5"
+            >
+              <Ship className="h-3.5 w-3.5" />
+              {loading ? "Fetching live data…" : `Track selected (${selected.size})`}
+            </Button>
+            {otherLineCount > 0 && (
+              <span className="text-xs text-muted-foreground/60">
+                {otherLineCount} shipment{otherLineCount === 1 ? "" : "s"} on other lines not trackable via ONE
+              </span>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Paste card (manual fallback) */}
       <Card className="gap-4 rounded-2xl border-foreground/[0.06] bg-foreground/[0.02] p-6 shadow-none backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <RadioTower className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
           <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Booking numbers
+            {sheetBookings.length > 0 ? "Or paste booking numbers manually" : "Booking numbers"}
           </span>
           <span className="ml-1 text-xs text-muted-foreground/50">
             paste anything — whole sheet rows, comma lists, one per line
@@ -294,7 +390,7 @@ export function TrackingClient() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={fetchTracking}
+            onClick={() => runTracking(input)}
             disabled={loading || !input.trim()}
             size="sm"
             className="gap-1.5 rounded-full px-5"

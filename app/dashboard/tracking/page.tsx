@@ -4,6 +4,8 @@ import { Archive } from "lucide-react"
 import { SiteHeader } from "@/components/site-header"
 import { TrackingClient, TrackingResultsView } from "@/components/tracking-client"
 import { getSession } from "@/lib/auth"
+import { loadDataset } from "@/lib/store"
+import { deriveTrackableBookings, type TrackableBookings } from "@/lib/tracking-source"
 import { latestTrackingRun } from "@/lib/tracking-store"
 
 export const metadata: Metadata = {
@@ -29,6 +31,17 @@ export default async function TrackingPage() {
   const isStaff = session?.role === "uploader" || session?.role === "admin"
   const run = isStaff ? null : await latestTrackingRun()
 
+  // Staff see bookings pre-sourced from the synced ops sheet (paste stays as fallback).
+  let sheet: TrackableBookings = { bookings: [], otherLineCount: 0 }
+  if (isStaff) {
+    try {
+      const dataset = await loadDataset()
+      sheet = deriveTrackableBookings(dataset.shipments)
+    } catch (err) {
+      console.error("[tracking] could not load dataset for booking suggestions:", err)
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
@@ -47,14 +60,14 @@ export default async function TrackingPage() {
             </h1>
             <span className="text-xs text-muted-foreground">
               {isStaff
-                ? "Live data from Ocean Network Express · paste booking numbers below"
+                ? "Live data from Ocean Network Express · bookings from the ops sheet, or paste manually"
                 : "Container status from Ocean Network Express · updated by LINKS"}
             </span>
           </div>
         </div>
 
         {isStaff ? (
-          <TrackingClient />
+          <TrackingClient sheetBookings={sheet.bookings} otherLineCount={sheet.otherLineCount} />
         ) : run ? (
           <TrackingResultsView
             allRows={run.rows}
