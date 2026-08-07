@@ -38,6 +38,9 @@ export function PeriodFilter({
   const activeYear = periods.find((p) => p.year === year)
   const selectCls =
     "h-8 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 text-xs focus:border-emerald-500/60 focus:outline-none"
+  // Native <option> popups inherit the page foreground on some platforms,
+  // turning white-on-white in dark mode — force readable colors explicitly.
+  const optionStyle = { color: "#111", backgroundColor: "#fff" } as const
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", pending && "opacity-60", className)}>
@@ -48,9 +51,11 @@ export function PeriodFilter({
         value={year === null ? "all" : String(year)}
         onChange={(e) => apply(e.target.value === "all" ? null : Number(e.target.value), null)}
       >
-        <option value="all">All time</option>
+        <option value="all" style={optionStyle}>
+          All time
+        </option>
         {periods.map((p) => (
-          <option key={p.year} value={p.year}>
+          <option key={p.year} value={p.year} style={optionStyle}>
             {p.year}
           </option>
         ))}
@@ -62,9 +67,11 @@ export function PeriodFilter({
         value={month === null ? "all" : String(month)}
         onChange={(e) => apply(year, e.target.value === "all" ? null : Number(e.target.value))}
       >
-        <option value="all">Whole year</option>
+        <option value="all" style={optionStyle}>
+          Whole year
+        </option>
         {(activeYear?.months ?? []).map((m) => (
-          <option key={m} value={m}>
+          <option key={m} value={m} style={optionStyle}>
             {MONTH_NAMES[m - 1]}
           </option>
         ))}

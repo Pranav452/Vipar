@@ -121,7 +121,7 @@ export default async function DashboardPage({
         </div>
 
         {/* Globe + vessel schedule */}
-        <div className="mt-4 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+        <div className="mt-4 grid items-start gap-4 xl:grid-cols-[1.6fr_1fr]">
           <TradeLanesCard lanes={stats.lanes} />
           <DeparturesCard vessels={stats.vesselGroups} asOf={stats.asOf} />
         </div>

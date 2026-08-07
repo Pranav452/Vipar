@@ -26,11 +26,18 @@ export function inPeriod(iso: string | null, p: Period): boolean {
   return p.month === null || m === p.month
 }
 
+// Ops-sheet uploads contain typo dates (e.g. year 2062, negative serials); only
+// offer sane years as filter options — the shipments themselves are kept.
+const MIN_FILTER_YEAR = 2024
+
 export function availablePeriods(dates: (string | null)[]): { year: number; months: number[] }[] {
+  const maxFilterYear = new Date().getFullYear() + 1
   const map = new Map<number, Set<number>>()
   for (const iso of dates) {
     if (!iso) continue
     const [y, m] = iso.split("-").map(Number)
+    if (!Number.isInteger(y) || y < MIN_FILTER_YEAR || y > maxFilterYear) continue
+    if (!Number.isInteger(m) || m < 1 || m > 12) continue
     if (!map.has(y)) map.set(y, new Set())
     map.get(y)!.add(m)
   }
